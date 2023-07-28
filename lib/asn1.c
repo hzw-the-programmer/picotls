@@ -21,7 +21,7 @@
 #ifdef _WINDOWS
 #include "wincompat.h"
 #else
-#include <sys/time.h>
+//#include <sys/time.h>
 #endif
 #include <errno.h>
 #include <stdlib.h>

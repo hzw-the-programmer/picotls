@@ -16,7 +16,7 @@
 #ifdef _WINDOWS
 #include "wincompat.h"
 #else
-#include <unistd.h>
+//#include <unistd.h>
 #endif
 #include <errno.h>
 #include <stdlib.h>

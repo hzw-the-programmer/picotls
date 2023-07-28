@@ -23,13 +23,13 @@
 #define _XOPEN_SOURCE 700 /* required for glibc to use getaddrinfo, etc. */
 #endif
 #include <errno.h>
-#include <fcntl.h>
+//#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef _WINDOWS
 #include "wincompat.h"
 #else
-#include <unistd.h>
+//#include <unistd.h>
 #endif
 #include "drbg.h"
 #include "picotls.h"
@@ -84,6 +84,7 @@ static void read_entropy(uint8_t *entropy, size_t size)
 #else
 static void read_entropy(uint8_t *entropy, size_t size)
 {
+#if 0
     int fd;
 
     if ((fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC)) == -1) {
@@ -106,6 +107,7 @@ static void read_entropy(uint8_t *entropy, size_t size)
     }
 
     close(fd);
+#endif
 }
 #endif
 

@@ -19,14 +19,14 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#include <fcntl.h>
+//#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #ifdef _WINDOWS
 #include "wincompat.h"
 #else
-#include <unistd.h>
+//#include <unistd.h>
 #endif
 #include "picotls.h"
 #include "picotls/minicrypto.h"
