@@ -74,7 +74,9 @@ static int labeled_expand(ptls_hpke_kem_t *kem, ptls_hpke_cipher_suite_t *cipher
     uint8_t labeled_info_smallbuf[64];
     int ret;
 
+#if !defined(__VC6_COMPAT__)
     assert(outlen < UINT16_MAX);
+#endif
 
     ptls_buffer_init(&labeled_info, labeled_info_smallbuf, sizeof(labeled_info_smallbuf));
 

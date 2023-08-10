@@ -22,6 +22,13 @@
 #ifndef picotls_h
 #define picotls_h
 
+#define __VC6_COMPAT__
+
+#if defined(__VC6_COMPAT__)
+#undef assert
+#define assert(expression)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -590,10 +597,12 @@ typedef const struct st_ptls_hpke_cipher_suite_t {
         ret (*cb)(struct st_ptls_##name##_t * self);                                                                               \
     } ptls_##name##_t
 
+#if !defined(__VC6_COMPAT__)
 #define PTLS_CALLBACK_TYPE(ret, name, ...)                                                                                         \
     typedef struct st_ptls_##name##_t {                                                                                            \
         ret (*cb)(struct st_ptls_##name##_t * self, __VA_ARGS__);                                                                  \
     } ptls_##name##_t
+#endif
 
 /**
  * arguments passsed to the on_client_hello callback
@@ -644,12 +653,24 @@ PTLS_CALLBACK_TYPE0(uint64_t, get_time);
  * after receiving ClientHello, the core calls the optional callback to give a chance to the swap the context depending on the input
  * values. The callback is required to call `ptls_set_server_name` if an SNI extension needs to be sent to the client.
  */
+#if !defined(__VC6_COMPAT__)
 PTLS_CALLBACK_TYPE(int, on_client_hello, ptls_t *tls, ptls_on_client_hello_parameters_t *params);
+#else
+typedef struct st_ptls_on_client_hello_t {
+	int (*cb)(struct st_ptls_on_client_hello_t * self, ptls_t *tls, ptls_on_client_hello_parameters_t *params);
+} ptls_on_client_hello_t;
+#endif
 /**
  * callback to generate the certificate message. `ptls_context::certificates` are set when the callback is set to NULL.
  */
+#if !defined(__VC6_COMPAT__)
 PTLS_CALLBACK_TYPE(int, emit_certificate, ptls_t *tls, ptls_message_emitter_t *emitter, ptls_key_schedule_t *key_sched,
                    ptls_iovec_t context, int push_status_request, const uint16_t *compress_algos, size_t num_compress_algos);
+#else
+typedef struct st_ptls_emit_certificate_t {
+    int (*cb)(struct st_ptls_emit_certificate_t * self, ptls_t *tls, ptls_message_emitter_t *emitter, ptls_key_schedule_t *key_sched, ptls_iovec_t context, int push_status_request, const uint16_t *compress_algos, size_t num_compress_algos);
+} ptls_emit_certificate_t;
+#endif
 /**
  * An object that represents an asynchronous task (e.g., RSA signature generation).
  * When `ptls_handshake` returns `PTLS_ERROR_ASYNC_OPERATION`, it has an associated task in flight. The user should obtain the
@@ -673,8 +694,14 @@ typedef struct st_ptls_async_job_t {
  * When gerenating CertificateVerify, the core calls the callback to sign the handshake context using the certificate. This callback
  * supports asynchronous mode; see `ptls_openssl_sign_certificate_t` for more information.
  */
+#if !defined(__VC6_COMPAT__)
 PTLS_CALLBACK_TYPE(int, sign_certificate, ptls_t *tls, ptls_async_job_t **async, uint16_t *selected_algorithm,
                    ptls_buffer_t *output, ptls_iovec_t input, const uint16_t *algorithms, size_t num_algorithms);
+#else
+typedef struct st_ptls_sign_certificate_t {
+	int (*cb)(struct st_ptls_sign_certificate_t * self, ptls_t *tls, ptls_async_job_t **async, uint16_t *selected_algorithm, ptls_buffer_t *output, ptls_iovec_t input, const uint16_t *algorithms, size_t num_algorithms);
+} ptls_sign_certificate_t;
+#endif
 /**
  * after receiving Certificate, the core calls the callback to verify the certificate chain and to obtain a pointer to a
  * callback that should be used for verifying CertificateVerify. If an error occurs between a successful return from this
@@ -699,31 +726,65 @@ typedef struct st_ptls_verify_certificate_t {
  * When used for decryption, the function should return 0 (successful), PTLS_ERROR_REJECT_EARLY_DATA (successful, but 0-RTT is
  * forbidden), or any other value to indicate failure.
  */
+#if !defined(__VC6_COMPAT__)
 PTLS_CALLBACK_TYPE(int, encrypt_ticket, ptls_t *tls, int is_encrypt, ptls_buffer_t *dst, ptls_iovec_t src);
+#else
+typedef struct st_ptls_encrypt_ticket_t {
+	int (*cb)(struct st_ptls_encrypt_ticket_t * self, ptls_t *tls, int is_encrypt, ptls_buffer_t *dst, ptls_iovec_t src);
+} ptls_encrypt_ticket_t;
+#endif
 /**
  * saves a ticket (client-only)
  */
+#if !defined(__VC6_COMPAT__)
 PTLS_CALLBACK_TYPE(int, save_ticket, ptls_t *tls, ptls_iovec_t input);
+#else
+typedef struct st_ptls_save_ticket_t {
+    int (*cb)(struct st_ptls_save_ticket_t * self, ptls_t *tls, ptls_iovec_t input);
+} ptls_save_ticket_t;
+#endif
 /**
  * event logging (incl. secret logging)
  */
 typedef struct st_ptls_log_event_t {
+#if !defined(__VC6_COMPAT__)
     void (*cb)(struct st_ptls_log_event_t *self, ptls_t *tls, const char *type, const char *fmt, ...)
         __attribute__((format(printf, 4, 5)));
+#else
+	void (*cb)(struct st_ptls_log_event_t *self, ptls_t *tls, const char *type, const char *fmt, ...);
+#endif
 } ptls_log_event_t;
 /**
  * reference counting
  */
+#if !defined(__VC6_COMPAT__)
 PTLS_CALLBACK_TYPE(void, update_open_count, ssize_t delta);
+#else
+typedef struct st_ptls_update_open_count_t {
+	void (*cb)(struct st_ptls_update_open_count_t * self, ssize_t delta);
+} ptls_update_open_count_t;
+#endif
 /**
  * applications that have their own record layer can set this function to derive their own traffic keys from the traffic secret.
  * The cipher-suite that is being associated to the connection can be obtained by calling the ptls_get_cipher function.
  */
+#if !defined(__VC6_COMPAT__)
 PTLS_CALLBACK_TYPE(int, update_traffic_key, ptls_t *tls, int is_enc, size_t epoch, const void *secret);
+#else
+typedef struct st_ptls_update_traffic_key_t {
+	int (*cb)(struct st_ptls_update_traffic_key_t * self, ptls_t *tls, int is_enc, size_t epoch, const void *secret);
+} ptls_update_traffic_key_t;
+#endif
 /**
  * callback for every extension detected during decoding
  */
+#if !defined(__VC6_COMPAT__)
 PTLS_CALLBACK_TYPE(int, on_extension, ptls_t *tls, uint8_t hstype, uint16_t exttype, ptls_iovec_t extdata);
+#else
+typedef struct st_ptls_on_extension_t { 																						   \
+	int (*cb)(struct st_ptls_on_extension_t * self, ptls_t *tls, uint8_t hstype, uint16_t exttype, ptls_iovec_t extdata);																   \
+} ptls_on_extension_t;
+#endif
 /**
  *
  */
@@ -743,9 +804,14 @@ typedef struct st_ptls_decompress_certificate_t {
  * corresponding private key, invokes `ptls_hpke_setup_base_r` with provided `cipher`, `enc`, and `info_prefix` (which will be
  * "tls ech" || 00).
  */
+#if !defined(__VC6_COMPAT__)
 PTLS_CALLBACK_TYPE(ptls_aead_context_t *, ech_create_opener, ptls_hpke_kem_t **kem, ptls_hpke_cipher_suite_t **cipher, ptls_t *tls,
                    uint8_t config_id, ptls_hpke_cipher_suite_id_t cipher_id, ptls_iovec_t enc, ptls_iovec_t info_prefix);
-
+#else
+typedef struct st_ptls_ech_create_opener_t {
+	ptls_aead_context_t* (*cb)(struct st_ptls_ech_create_opener_t * self, ptls_hpke_kem_t **kem, ptls_hpke_cipher_suite_t **cipher, ptls_t *tls, uint8_t config_id, ptls_hpke_cipher_suite_id_t cipher_id, ptls_iovec_t enc, ptls_iovec_t info_prefix);
+} ptls_ech_create_opener_t;
+#endif
 /**
  * the configuration
  */
@@ -1027,15 +1093,27 @@ typedef struct st_ptls_handshake_properties_t {
 /**
  * builds a new ptls_iovec_t instance using the supplied parameters
  */
+#if !defined(__VC6_COMPAT__)
 static ptls_iovec_t ptls_iovec_init(const void *p, size_t len);
+#else
+extern ptls_iovec_t ptls_iovec_init(const void *p, size_t len);
+#endif
 /**
  * initializes a buffer, setting the default destination to the small buffer provided as the argument.
  */
+#if !defined(__VC6_COMPAT__)
 static void ptls_buffer_init(ptls_buffer_t *buf, void *smallbuf, size_t smallbuf_size);
+#else
+extern void ptls_buffer_init(ptls_buffer_t *buf, void *smallbuf, size_t smallbuf_size);
+#endif
 /**
  * disposes a buffer, freeing resources allocated by the buffer itself (if any)
  */
+#if !defined(__VC6_COMPAT__)
 static void ptls_buffer_dispose(ptls_buffer_t *buf);
+#else
+extern void ptls_buffer_dispose(ptls_buffer_t *buf);
+#endif
 /**
  * internal
  */
@@ -1583,13 +1661,21 @@ void ptls_cipher_free(ptls_cipher_context_t *ctx);
 /**
  * initializes the IV; this function must be called prior to calling ptls_cipher_encrypt
  */
+#if !defined(__VC6_COMPAT__)
 static void ptls_cipher_init(ptls_cipher_context_t *ctx, const void *iv);
+#else
+extern void ptls_cipher_init(ptls_cipher_context_t *ctx, const void *iv);
+#endif
 /**
  * Encrypts given text. The function must be used in a way that the output length would be equal to the input length. For example,
  * when using a block cipher in ECB mode, `len` must be a multiple of the block size when using a block cipher. The length can be
  * of any value when using a stream cipher or a block cipher in CTR mode.
  */
+#if !defined(__VC6_COMPAT__)
 static void ptls_cipher_encrypt(ptls_cipher_context_t *ctx, void *output, const void *input, size_t len);
+#else
+extern void ptls_cipher_encrypt(ptls_cipher_context_t *ctx, void *output, const void *input, size_t len);
+#endif
 /**
  * instantiates an AEAD cipher given a secret, which is expanded using hkdf to a set of key and iv
  * @param aead
@@ -1686,13 +1772,23 @@ void ptls_aead__build_iv(ptls_aead_algorithm_t *algo, uint8_t *iv, const uint8_t
 /**
  *
  */
+#if !defined(__VC6_COMPAT__)
 static void ptls_aead__do_encrypt(ptls_aead_context_t *ctx, void *output, const void *input, size_t inlen, uint64_t seq,
                                   const void *aad, size_t aadlen, ptls_aead_supplementary_encryption_t *supp);
+#else
+extern void ptls_aead__do_encrypt(ptls_aead_context_t *ctx, void *output, const void *input, size_t inlen, uint64_t seq,
+                                  const void *aad, size_t aadlen, ptls_aead_supplementary_encryption_t *supp);
+#endif
 /**
  *
  */
+#if !defined(__VC6_COMPAT__)
 static void ptls_aead__do_encrypt_v(ptls_aead_context_t *ctx, void *_output, ptls_iovec_t *input, size_t incnt, uint64_t seq,
                                     const void *aad, size_t aadlen);
+#else
+extern void ptls_aead__do_encrypt_v(ptls_aead_context_t *ctx, void *_output, ptls_iovec_t *input, size_t incnt, uint64_t seq,
+                                    const void *aad, size_t aadlen);
+#endif
 /**
  * internal
  */
@@ -1754,6 +1850,7 @@ extern PTLS_THREADLOCAL unsigned ptls_default_skip_tracing;
 
 /* inline functions */
 
+#if !defined(__VC6_COMPAT__)
 inline int ptls_log__do_push_safestr(ptls_buffer_t *buf, const char *s)
 {
     return ptls_log__do_pushv(buf, s, strlen(s));
@@ -1898,6 +1995,35 @@ inline size_t ptls_aead_decrypt(ptls_aead_context_t *ctx, void *output, const vo
 {
     return ctx->do_decrypt(ctx, output, input, inlen, seq, aad, aadlen);
 }
+#else // __VC6_COMPAT__
+extern int ptls_log__do_push_safestr(ptls_buffer_t *buf, const char *s);
+
+extern ptls_t *ptls_new(ptls_context_t *ctx, int is_server);
+
+extern uint8_t *ptls_encode_quicint(uint8_t *p, uint64_t v);
+
+extern void ptls_aead_get_iv(ptls_aead_context_t *ctx, void *iv);
+
+extern void ptls_aead_set_iv(ptls_aead_context_t *ctx, const void *iv);
+
+extern size_t ptls_aead_encrypt(ptls_aead_context_t *ctx, void *output, const void *input, size_t inlen, uint64_t seq,
+                                const void *aad, size_t aadlen);
+
+extern void ptls_aead_encrypt_s(ptls_aead_context_t *ctx, void *output, const void *input, size_t inlen, uint64_t seq,
+                                const void *aad, size_t aadlen, ptls_aead_supplementary_encryption_t *supp);
+
+extern void ptls_aead_encrypt_v(ptls_aead_context_t *ctx, void *output, ptls_iovec_t *input, size_t incnt, uint64_t seq,
+                                const void *aad, size_t aadlen);
+
+extern void ptls_aead_encrypt_init(ptls_aead_context_t *ctx, uint64_t seq, const void *aad, size_t aadlen);
+
+extern size_t ptls_aead_encrypt_update(ptls_aead_context_t *ctx, void *output, const void *input, size_t inlen);
+
+extern size_t ptls_aead_encrypt_final(ptls_aead_context_t *ctx, void *output);
+
+extern size_t ptls_aead_decrypt(ptls_aead_context_t *ctx, void *output, const void *input, size_t inlen, uint64_t seq,
+                                const void *aad, size_t aadlen);
+#endif // __VC6_COMPAT__
 
 #define ptls_define_hash(name, ctx_type, init_func, update_func, final_func)                                                       \
                                                                                                                                    \

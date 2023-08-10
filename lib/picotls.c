@@ -551,6 +551,10 @@ void ptls_buffer__release_memory(ptls_buffer_t *buf)
 {
     ptls_clear_memory(buf->base, buf->off);
     if (buf->is_allocated) {
+#if defined(__VC6_COMPAT__) || 1
+		assert(buf->align_bits == 0);
+		free(buf->base);
+#else // __VC6_COMPAT__
 #ifdef _WINDOWS
         if (buf->align_bits != 0) {
             _aligned_free(buf->base);
@@ -560,6 +564,7 @@ void ptls_buffer__release_memory(ptls_buffer_t *buf)
 #else
         free(buf->base);
 #endif
+#endif // __VC6_COMPAT__
     }
 }
 
@@ -582,6 +587,11 @@ int ptls_buffer_reserve_aligned(ptls_buffer_t *buf, size_t delta, uint8_t align_
         while (new_capacity < buf->off + delta) {
             new_capacity *= 2;
         }
+#if defined(__VC6_COMPAT__) || 1
+		assert(align_bits == 0);
+		if ((newp = malloc(new_capacity)) == NULL)
+                return PTLS_ERROR_NO_MEMORY;
+#else // __VC6_COMPAT__
         if (align_bits != 0) {
 #ifdef _WINDOWS
             if ((newp = _aligned_malloc(new_capacity, (size_t)1 << align_bits)) == NULL)
@@ -594,6 +604,7 @@ int ptls_buffer_reserve_aligned(ptls_buffer_t *buf, size_t delta, uint8_t align_
             if ((newp = malloc(new_capacity)) == NULL)
                 return PTLS_ERROR_NO_MEMORY;
         }
+#endif // __VC6_COMPAT__
         memcpy(newp, buf->base, buf->off);
         ptls_buffer__release_memory(buf);
         buf->base = newp;
@@ -6417,6 +6428,7 @@ int ptls_server_handle_message(ptls_t *tls, ptls_buffer_t *sendbuf, size_t epoch
  */
 int ptls_server_name_is_ipaddr(const char *name)
 {
+#if !defined(__VC6_COMPAT__)
 #ifdef AF_INET
     struct sockaddr_in sin;
     if (inet_pton(AF_INET, name, &sin) == 1)
@@ -6427,6 +6439,7 @@ int ptls_server_name_is_ipaddr(const char *name)
     if (inet_pton(AF_INET6, name, &sin6) == 1)
         return 1;
 #endif
+#endif // __VC6_COMPAT__
     return 0;
 }
 
@@ -6644,3 +6657,150 @@ void ptls_log__do_write(const ptls_buffer_t *buf)
     pthread_mutex_unlock(&logctx.mutex);
 #endif
 }
+
+#if defined(__VC6_COMPAT__)
+int ptls_log__do_push_safestr(ptls_buffer_t *buf, const char *s)
+{
+    return ptls_log__do_pushv(buf, s, strlen(s));
+}
+
+ptls_t *ptls_new(ptls_context_t *ctx, int is_server)
+{
+    return is_server ? ptls_server_new(ctx) : ptls_client_new(ctx);
+}
+
+ptls_iovec_t ptls_iovec_init(const void *p, size_t len)
+{
+    /* avoid the "return (ptls_iovec_t){(uint8_t *)p, len};" construct because it requires C99
+     * and triggers a warning "C4204: nonstandard extension used: non-constant aggregate initializer"
+     * in Visual Studio */
+    ptls_iovec_t r;
+    r.base = (uint8_t *)p;
+    r.len = len;
+    return r;
+}
+
+void ptls_buffer_init(ptls_buffer_t *buf, void *smallbuf, size_t smallbuf_size)
+{
+    assert(smallbuf != NULL);
+    buf->base = (uint8_t *)smallbuf;
+    buf->off = 0;
+    buf->capacity = smallbuf_size;
+    buf->is_allocated = 0;
+    buf->align_bits = 0;
+}
+
+void ptls_buffer_dispose(ptls_buffer_t *buf)
+{
+    ptls_buffer__release_memory(buf);
+    *buf = (ptls_buffer_t){NULL, 0, 0, 0, 0};
+}
+
+uint8_t *ptls_encode_quicint(uint8_t *p, uint64_t v)
+{
+    if (PTLS_UNLIKELY(v > 63)) {
+        if (PTLS_UNLIKELY(v > 16383)) {
+            unsigned sb;
+            if (PTLS_UNLIKELY(v > 1073741823)) {
+                assert(v <= 4611686018427387903);
+                *p++ = 0xc0 | (uint8_t)(v >> 56);
+                sb = 6 * 8;
+            } else {
+                *p++ = 0x80 | (uint8_t)(v >> 24);
+                sb = 2 * 8;
+            }
+            do {
+                *p++ = (uint8_t)(v >> sb);
+            } while ((sb -= 8) != 0);
+        } else {
+            *p++ = 0x40 | (uint8_t)((uint16_t)v >> 8);
+        }
+    }
+    *p++ = (uint8_t)v;
+    return p;
+}
+
+void ptls_cipher_init(ptls_cipher_context_t *ctx, const void *iv)
+{
+    ctx->do_init(ctx, iv);
+}
+
+void ptls_cipher_encrypt(ptls_cipher_context_t *ctx, void *output, const void *input, size_t len)
+{
+    ctx->do_transform(ctx, output, input, len);
+}
+
+void ptls_aead_get_iv(ptls_aead_context_t *ctx, void *iv)
+{
+    ctx->do_get_iv(ctx, iv);
+}
+
+void ptls_aead_set_iv(ptls_aead_context_t *ctx, const void *iv)
+{
+    ctx->do_set_iv(ctx, iv);
+}
+
+size_t ptls_aead_encrypt(ptls_aead_context_t *ctx, void *output, const void *input, size_t inlen, uint64_t seq,
+                                const void *aad, size_t aadlen)
+{
+    ctx->do_encrypt(ctx, output, input, inlen, seq, aad, aadlen, NULL);
+    return inlen + ctx->algo->tag_size;
+}
+
+void ptls_aead_encrypt_s(ptls_aead_context_t *ctx, void *output, const void *input, size_t inlen, uint64_t seq,
+                                const void *aad, size_t aadlen, ptls_aead_supplementary_encryption_t *supp)
+{
+    ctx->do_encrypt(ctx, output, input, inlen, seq, aad, aadlen, supp);
+}
+
+void ptls_aead_encrypt_v(ptls_aead_context_t *ctx, void *output, ptls_iovec_t *input, size_t incnt, uint64_t seq,
+                                const void *aad, size_t aadlen)
+{
+    ctx->do_encrypt_v(ctx, output, input, incnt, seq, aad, aadlen);
+}
+
+void ptls_aead_encrypt_init(ptls_aead_context_t *ctx, uint64_t seq, const void *aad, size_t aadlen)
+{
+    ctx->do_encrypt_init(ctx, seq, aad, aadlen);
+}
+
+size_t ptls_aead_encrypt_update(ptls_aead_context_t *ctx, void *output, const void *input, size_t inlen)
+{
+    return ctx->do_encrypt_update(ctx, output, input, inlen);
+}
+
+size_t ptls_aead_encrypt_final(ptls_aead_context_t *ctx, void *output)
+{
+    return ctx->do_encrypt_final(ctx, output);
+}
+
+void ptls_aead__do_encrypt(ptls_aead_context_t *ctx, void *output, const void *input, size_t inlen, uint64_t seq,
+                                  const void *aad, size_t aadlen, ptls_aead_supplementary_encryption_t *supp)
+{
+    ptls_iovec_t invec = ptls_iovec_init(input, inlen);
+    ctx->do_encrypt_v(ctx, output, &invec, 1, seq, aad, aadlen);
+
+    if (supp != NULL) {
+        ptls_cipher_init(supp->ctx, supp->input);
+        memset(supp->output, 0, sizeof(supp->output));
+        ptls_cipher_encrypt(supp->ctx, supp->output, supp->output, sizeof(supp->output));
+    }
+}
+
+void ptls_aead__do_encrypt_v(ptls_aead_context_t *ctx, void *_output, ptls_iovec_t *input, size_t incnt, uint64_t seq,
+                                    const void *aad, size_t aadlen)
+{
+    uint8_t *output = (uint8_t *)_output;
+
+    ctx->do_encrypt_init(ctx, seq, aad, aadlen);
+    for (size_t i = 0; i < incnt; ++i)
+        output += ctx->do_encrypt_update(ctx, output, input[i].base, input[i].len);
+    ctx->do_encrypt_final(ctx, output);
+}
+
+size_t ptls_aead_decrypt(ptls_aead_context_t *ctx, void *output, const void *input, size_t inlen, uint64_t seq,
+                                const void *aad, size_t aadlen)
+{
+    return ctx->do_decrypt(ctx, output, input, inlen, seq, aad, aadlen);
+}
+#endif // __VC6_COMPAT__
