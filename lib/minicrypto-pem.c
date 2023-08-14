@@ -19,6 +19,11 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+#if defined(__SPRD_PORTING__)
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#else // __SPRD_PORTING__
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +33,7 @@
 #else
 #include <unistd.h>
 #endif
+#endif // __SPRD_PORTING__
 #include "picotls.h"
 #include "picotls/minicrypto.h"
 #include "picotls/asn1.h"

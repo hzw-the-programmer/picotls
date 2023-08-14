@@ -5,6 +5,18 @@
 
 #include "types.h"
 
+#if defined(__SPRD_PORTING__)
+static int default_RNG(uint8_t *dest, unsigned size) 
+{
+    unsigned i;
+    for (i = 0; i < size; i++)
+    {
+        dest[i] = i;
+    }
+    return 1;
+}
+#define default_RNG_defined 1
+#else // __SPRD_PORTING__
 #if (defined(_WIN32) || defined(_WIN64))
 /* Windows */
 
@@ -90,5 +102,6 @@ static int default_RNG(uint8_t *dest, unsigned size)
 #define default_RNG_defined 1
 
 #endif /* platform */
+#endif // __SPRD_PORTING__
 
 #endif /* _UECC_PLATFORM_SPECIFIC_H_ */

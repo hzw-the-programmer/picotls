@@ -4,6 +4,9 @@
 #define _UECC_TYPES_H_
 
 #ifndef uECC_PLATFORM
+#if defined(__SPRD_PORTING__)
+    #define uECC_PLATFORM uECC_arch_other
+#else // __SPRD_PORTING__
     #if __AVR__
         #define uECC_PLATFORM uECC_avr
     #elif defined(__thumb2__) || defined(_M_ARMT) /* I think MSVC only supports Thumb-2 targets */
@@ -21,6 +24,7 @@
     #else
         #define uECC_PLATFORM uECC_arch_other
     #endif
+#endif // __SPRD_PORTING__
 #endif
 
 #ifndef uECC_ARM_USE_UMAAL

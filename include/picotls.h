@@ -60,12 +60,16 @@ extern "C" {
 
 #define PTLS_ELEMENTSOF(x) (PTLS_ASSERT_IS_ARRAY_EXPR(x) * sizeof(x) / sizeof((x)[0]))
 
+#if defined(__SPRD_PORTING__)
+#define PTLS_THREADLOCAL
+#else // __SPRD_PORTING__
 #ifdef _WINDOWS
 #define PTLS_THREADLOCAL __declspec(thread)
 #else
 #define PTLS_THREADLOCAL __thread
 #define PTLS_HAVE_LOG 1
 #endif
+#endif // __SPRD_PORTING__
 
 #ifndef PTLS_FUZZ_HANDSHAKE
 #define PTLS_FUZZ_HANDSHAKE 0

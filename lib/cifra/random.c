@@ -23,6 +23,10 @@
 #define _XOPEN_SOURCE 700 /* required for glibc to use getaddrinfo, etc. */
 #endif
 #include <errno.h>
+#if defined(__SPRD_PORTING__)
+#include <stdio.h>
+#include <stdlib.h>
+#else // __SPRD_PORTING__
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,10 +35,16 @@
 #else
 #include <unistd.h>
 #endif
+#endif // __SPRD_PORTING__
 #include "drbg.h"
 #include "picotls.h"
 #include "picotls/minicrypto.h"
 #include <stdio.h>
+#if defined(__SPRD_PORTING__)
+static void read_entropy(uint8_t *entropy, size_t size)
+{
+}
+#else // __SPRD_PORTING__
 #ifdef _WINDOWS
 #ifdef _WINDOWS_XP
 /* The modern BCrypt API is only available on Windows Vista and later versions.
@@ -108,6 +118,7 @@ static void read_entropy(uint8_t *entropy, size_t size)
     close(fd);
 }
 #endif
+#endif // __SPRD_PORTING__
 
 void ptls_minicrypto_random_bytes(void *buf, size_t len)
 {

@@ -13,11 +13,13 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+#if !defined(__SPRD_PORTING__)
 #ifdef _WINDOWS
 #include "wincompat.h"
 #else
 #include <unistd.h>
 #endif
+#endif // __SPRD_PORTING__
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>

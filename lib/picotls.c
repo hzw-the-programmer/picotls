@@ -27,6 +27,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(__SPRD_PORTING__)
+#include <errno.h>
+#else // __SPRD_PORTING__
 #ifndef _WINDOWS
 #include <errno.h>
 #include <pthread.h>
@@ -34,6 +37,7 @@
 #include <arpa/inet.h>
 #include <sys/time.h>
 #endif
+#endif // __SPRD_PORTING__
 #include "picotls.h"
 #if PICOTLS_USE_DTRACE
 #include "picotls-probes.h"
@@ -6285,9 +6289,13 @@ int (*volatile ptls_mem_equal)(const void *x, const void *y, size_t len) = mem_e
 
 static uint64_t get_time(ptls_get_time_t *self)
 {
+#if defined(__SPRD_PORTING__)
+    return MMIAPICOM_GetCurTime() * 1000;
+#else
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return (uint64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+#endif
 }
 
 ptls_get_time_t ptls_get_time = {get_time};

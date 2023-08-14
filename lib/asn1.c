@@ -18,11 +18,13 @@
  * Basic ASN1 validation and optional print-out
  */
 
+#if !defined(__SPRD_PORTING__)
 #ifdef _WINDOWS
 #include "wincompat.h"
 #else
 #include <sys/time.h>
 #endif
+#endif // __SPRD_PORTING__
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
