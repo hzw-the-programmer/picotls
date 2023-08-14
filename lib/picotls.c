@@ -5628,6 +5628,7 @@ static int handle_input(ptls_t *tls, ptls_message_emitter_t *emitter, ptls_buffe
                 goto ServerSkipEarlyData;
             return ret;
         }
+        ptls_print_buf(decryptbuf->base + decryptbuf->off, decrypted_length);
         rec.length = decrypted_length;
         rec.fragment = decryptbuf->base + decryptbuf->off;
         /* skip padding */
@@ -6643,4 +6644,24 @@ void ptls_log__do_write(const ptls_buffer_t *buf)
 
     pthread_mutex_unlock(&logctx.mutex);
 #endif
+}
+
+void ptls_print_buf(const uint8_t *buf, size_t len)
+{
+    size_t i;
+
+    printf("***********************************************************\n");
+    for (i = 0; i < len; i++) {
+        printf("0x%02x,", buf[i]);
+        if (i % 10 == 10 - 1 || i == len - 1) {
+            printf("\n");
+            if (i % 100 == 100 - 1) {
+                printf("\n");
+            }
+        }
+        else {
+            printf(" ");
+        }
+    }
+    printf("***********************************************************\n\n");
 }
