@@ -778,12 +778,29 @@ static int buffer_push_encrypted_records(ptls_buffer_t *buf, uint8_t type, const
                 ++enc->seq;
             });
         } else {
+            printf("***********************************************************\n");
+            printf("* begin: buffer_push_encrypted_records: pt\n");
+            printf("***********************************************************\n");
+            ptls_print_buf(src, chunk_size);
+            printf("***********************************************************\n");
+            printf("* end: buffer_push_encrypted_records: pt\n");
+            printf("***********************************************************\n");
+
             buffer_push_record(buf, PTLS_CONTENT_TYPE_APPDATA, {
                 if ((ret = ptls_buffer_reserve_aligned(buf, chunk_size + enc->aead->algo->tag_size + 1,
                                                        enc->aead->algo->align_bits)) != 0)
                     goto Exit;
                 buf->off += aead_encrypt(enc, buf->base + buf->off, src, chunk_size, type);
             });
+
+            printf("***********************************************************\n");
+            printf("* begin: buffer_push_encrypted_records: ct\n");
+            printf("***********************************************************\n");
+            ptls_print_buf(buf->base, 5);
+            ptls_print_buf(buf->base + 5, buf->off - 5);
+            printf("***********************************************************\n");
+            printf("* end: buffer_push_encrypted_records: tt\n");
+            printf("***********************************************************\n");
         }
         src += chunk_size;
         len -= chunk_size;
@@ -5605,6 +5622,15 @@ static int handle_input(ptls_t *tls, ptls_message_emitter_t *emitter, ptls_buffe
         return ret;
     assert(rec.fragment != NULL);
 
+    printf("***********************************************************\n");
+    printf("* begin: handle_input: rec.fragment\n");
+    printf("***********************************************************\n");
+    ptls_print_buf(rec.fragment - 5, 5);
+    ptls_print_buf(rec.fragment, rec.length);
+    printf("***********************************************************\n");
+    printf("* end: handle_input: rec.fragment\n");
+    printf("***********************************************************\n");
+
     /* decrypt the record */
     if (rec.type == PTLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC) {
         if (tls->state < PTLS_STATE_POST_HANDSHAKE_MIN) {
@@ -5628,7 +5654,15 @@ static int handle_input(ptls_t *tls, ptls_message_emitter_t *emitter, ptls_buffe
                 goto ServerSkipEarlyData;
             return ret;
         }
+
+        printf("***********************************************************\n");
+        printf("* begin: handle_input: decryptbuf\n");
+        printf("***********************************************************\n");
         ptls_print_buf(decryptbuf->base + decryptbuf->off, decrypted_length);
+        printf("***********************************************************\n");
+        printf("* end: handle_input: decryptebuf\n");
+        printf("***********************************************************\n");
+
         rec.length = decrypted_length;
         rec.fragment = decryptbuf->base + decryptbuf->off;
         /* skip padding */
@@ -6650,7 +6684,6 @@ void ptls_print_buf(const uint8_t *buf, size_t len)
 {
     size_t i;
 
-    printf("***********************************************************\n");
     for (i = 0; i < len; i++) {
         printf("0x%02x,", buf[i]);
         if (i % 10 == 10 - 1 || i == len - 1) {
@@ -6663,5 +6696,4 @@ void ptls_print_buf(const uint8_t *buf, size_t len)
             printf(" ");
         }
     }
-    printf("***********************************************************\n\n");
 }
