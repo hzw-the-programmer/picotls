@@ -789,6 +789,16 @@ static int buffer_push_encrypted_records(ptls_buffer_t *buf, uint8_t type, const
                 buf->off += aead_encrypt(enc, buf->base + buf->off, src, chunk_size, type);
             });
         }
+
+        printf("***buffer_push_encrypted_records:decrypted:0x%02x:start***\n", type);
+        ptls_print_buf(src, chunk_size);
+        printf("***buffer_push_encrypted_records:decrypted:0x%02x:end***\n", type);
+
+        printf("***buffer_push_encrypted_records:encrypted:start***\n");
+        ptls_print_buf(buf->base + (buf->off - (chunk_size + 1 + enc->aead->algo->tag_size + 5)), 5);
+        ptls_print_buf(buf->base + (buf->off - (chunk_size + 1 + enc->aead->algo->tag_size)), chunk_size + 1 + enc->aead->algo->tag_size);
+        printf("***buffer_push_encrypted_records:encrypted:end***\n");
+
         src += chunk_size;
         len -= chunk_size;
     }
@@ -809,12 +819,23 @@ static int buffer_encrypt_record(ptls_buffer_t *buf, size_t rec_start, struct st
         size_t overhead = 1 + enc->aead->algo->tag_size;
         if ((ret = ptls_buffer_reserve_aligned(buf, overhead, enc->aead->algo->align_bits)) != 0)
             return ret;
+
+        printf("***buffer_encrypt_record:decrypted:0x%02x:start***\n", type);
+        ptls_print_buf(buf->base + rec_start + 5, bodylen);
+        printf("***buffer_encrypt_record:decrypted:0x%02x:end***\n", type);
+
         size_t encrypted_len = aead_encrypt(enc, buf->base + rec_start + 5, buf->base + rec_start + 5, bodylen, type);
         assert(encrypted_len == bodylen + overhead);
         buf->off += overhead;
         buf->base[rec_start] = PTLS_CONTENT_TYPE_APPDATA;
         buf->base[rec_start + 3] = (encrypted_len >> 8) & 0xff;
         buf->base[rec_start + 4] = encrypted_len & 0xff;
+
+        printf("***buffer_encrypt_record:encrypted:start***\n");
+        ptls_print_buf(buf->base + rec_start, 5);
+        ptls_print_buf(buf->base + rec_start + 5, encrypted_len);
+        printf("***buffer_encrypt_record:encrypted:end***\n");
+
         return 0;
     }
 
@@ -864,6 +885,11 @@ static int commit_record_message(ptls_message_emitter_t *_self)
         self->super.buf->base[self->rec_start + 3] = (uint8_t)(sz >> 8);
         self->super.buf->base[self->rec_start + 4] = (uint8_t)(sz);
         ret = 0;
+
+        printf("***commit_record_message:start***\n");
+        ptls_print_buf(self->super.buf->base + self->rec_start, 5);
+        ptls_print_buf(self->super.buf->base + self->rec_start + 5, sz);
+        printf("***commit_record_message:end***\n");
     }
 
     return ret;
@@ -5609,6 +5635,11 @@ static int handle_input(ptls_t *tls, ptls_message_emitter_t *emitter, ptls_buffe
         return ret;
     assert(rec.fragment != NULL);
 
+    printf("***handle_input:start***\n");
+    ptls_print_buf(rec.fragment - 5, 5);
+    ptls_print_buf(rec.fragment, rec.length);
+    printf("***handle_input:end***\n");
+
     /* decrypt the record */
     if (rec.type == PTLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC) {
         if (tls->state < PTLS_STATE_POST_HANDSHAKE_MIN) {
@@ -5632,6 +5663,11 @@ static int handle_input(ptls_t *tls, ptls_message_emitter_t *emitter, ptls_buffe
                 goto ServerSkipEarlyData;
             return ret;
         }
+
+        printf("***handle_input:decrypted:start***\n");
+        ptls_print_buf(decryptbuf->base + decryptbuf->off, decrypted_length);
+        printf("***handle_input:decrypted:end***\n");
+
         rec.length = decrypted_length;
         rec.fragment = decryptbuf->base + decryptbuf->off;
         /* skip padding */
@@ -6651,13 +6687,14 @@ void ptls_log__do_write(const ptls_buffer_t *buf)
 
 void ptls_print_buf(const uint8_t* buf, size_t len)
 {
+#define HEX_PER_LINE 16
     size_t i;
 
     for (i = 0; i < len; i++) {
         printf("0x%02x,", buf[i]);
-        if (i % 10 == 10 - 1 || i == len - 1) {
+        if (i % HEX_PER_LINE == HEX_PER_LINE - 1 || i == len - 1) {
             printf("\n");
-            if (i % 100 == 100 - 1) {
+            if (i % (HEX_PER_LINE * HEX_PER_LINE) == HEX_PER_LINE * HEX_PER_LINE - 1) {
                 printf("\n");
             }
         }
@@ -6665,6 +6702,7 @@ void ptls_print_buf(const uint8_t* buf, size_t len)
             printf(" ");
         }
     }
+#undef HEX_PER_LINE
 }
 
 void ptls_buffer_shift(ptls_buffer_t *buf, size_t delta)
