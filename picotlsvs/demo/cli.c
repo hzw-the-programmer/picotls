@@ -102,9 +102,14 @@ void process(SOCKET soc) {
 					}
 				}
 				else {
-					result = ptls_receive(tls, &recvbuf, buf, &left);
+					result = ptls_receive(tls, &recvbuf, buf + off, &left);
 					if (result == 0) {
-						recvbuf.off = 0;
+                        if (recvbuf.off) {
+                            for (size_t i = 0; i < recvbuf.off; i++) {
+                                printf("%c", recvbuf.base[i]);
+							}
+							recvbuf.off = 0;
+						}
 					}
 				}
 				off += left;
