@@ -1976,6 +1976,9 @@ inline size_t ptls_aead_decrypt(ptls_aead_context_t *ctx, void *output, const vo
         return &ctx->super;                                                                                                        \
     }
 
+void ptls_print_buf(const uint8_t* buf, size_t len);
+void ptls_buffer_shift(ptls_buffer_t *buf, size_t delta);
+
 #ifdef __cplusplus
 }
 #endif
