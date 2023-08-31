@@ -135,9 +135,12 @@
   <ItemGroup>
     <ClCompile Include="cli.c" />
     <ClCompile Include="demo.c" />
+    <ClCompile Include="http.c" />
+    <ClCompile Include="http_test.c" />
     <ClCompile Include="slice.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="http.h" />
     <ClInclude Include="slice.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

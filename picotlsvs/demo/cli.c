@@ -2,8 +2,13 @@
 #include <stdio.h>
 #include "picotls.h"
 #include "picotls/minicrypto.h"
+#include "http.h"
 
 #define DEFAULT_BUFLEN 1024
+
+#define REQUEST "GET / HTTP/1.1\r\n" \
+                "Host: localhost\r\n" \
+                "\r\n"
 
 void process(SOCKET soc);
 
@@ -74,6 +79,8 @@ void process(SOCKET soc) {
 	ptls_buffer_t recvbuf;
 	ptls_buffer_init(&recvbuf, "", 0);
 
+	http_ctx_t http_ctx = {0};
+
 	while (1) {
 		int result;
 		
@@ -97,8 +104,7 @@ void process(SOCKET soc) {
 				if (!ptls_handshake_is_complete(tls)) {
 					result = ptls_handshake(tls, &sendbuf, buf, &left, NULL);
 					if (result == 0) {
-						uint8_t req[] = "GET / HTTP/1.1\r\n\r\n";
-						ptls_send(tls, &sendbuf, req, sizeof(req) - 1);
+						ptls_send(tls, &sendbuf, REQUEST, sizeof(REQUEST) - 1);
 					}
 				}
 				else {
@@ -108,7 +114,9 @@ void process(SOCKET soc) {
                             for (size_t i = 0; i < recvbuf.off; i++) {
                                 printf("%c", recvbuf.base[i]);
 							}
-							recvbuf.off = 0;
+                            size_t consumed = recvbuf.off;
+                            http_parse_response(&http_ctx, recvbuf.base, &consumed);
+                            ptls_buffer_shift(&recvbuf, consumed);
 						}
 					}
 				}
