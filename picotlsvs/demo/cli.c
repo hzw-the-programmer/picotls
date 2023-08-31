@@ -4,6 +4,11 @@
 #include "picotls/minicrypto.h"
 #include "http.h"
 
+static void header_cb(http_ctx_t *ctx, const slice_t *k, const slice_t *v);
+static void firstline_cb(http_ctx_t *ctx, const slice_t *line, const slice_t *version, const slice_t *status,
+                         const slice_t *reason);
+static void body_cb(http_ctx_t *ctx, const slice_t *body);
+
 #define DEFAULT_BUFLEN 1024
 
 #define REQUEST "GET / HTTP/1.1\r\n" \
@@ -80,6 +85,10 @@ void process(SOCKET soc) {
 	ptls_buffer_init(&recvbuf, "", 0);
 
 	http_ctx_t http_ctx = {0};
+	http_ctx.header_cb = header_cb;
+	http_ctx.firstline_cb = firstline_cb;
+	http_ctx.body_cb = body_cb;
+	
 	int req_count = 0;
 
 	while (1) {
@@ -113,12 +122,18 @@ void process(SOCKET soc) {
 					result = ptls_receive(tls, &recvbuf, buf + off, &left);
 					if (result == 0) {
                         if (recvbuf.off) {
+							/*
                             for (size_t i = 0; i < recvbuf.off; i++) {
                                 printf("%c", recvbuf.base[i]);
 							}
+                            */
                             size_t consumed = recvbuf.off;
 							if (http_parse_response(&http_ctx, recvbuf.base, &consumed)) {
                                 memset(&http_ctx, 0, sizeof(http_ctx));
+								http_ctx.header_cb = header_cb;
+                                http_ctx.firstline_cb = firstline_cb;
+								http_ctx.body_cb = body_cb;
+	
                                 if (req_count < 3) {
                                     printf("req_count=%d\n", req_count++);
                                     ptls_send(tls, &sendbuf, REQUEST, sizeof(REQUEST) - 1);
@@ -140,4 +155,32 @@ end:
 	ptls_buffer_dispose(&sendbuf);
 	ptls_buffer_dispose(&recvbuf);
 	ptls_free(tls);
+}
+
+void slice_log(const slice_t *s)
+{
+    for (size_t i = 0; i < s->len; i++) {
+        uint8_t b = s->ptr[i];
+        if ((b > 0x1f && b < 0x7f) || b == '\r' || b == '\n') {
+			printf("%c", b);
+        } else {
+			printf("0x%02x, ", b);
+		}	
+    }
+    printf("\n");
+}
+
+static void firstline_cb(http_ctx_t *ctx, const slice_t *line, const slice_t *version, const slice_t *status, const slice_t *reason)
+{
+    slice_log(line);
+}
+
+static void header_cb(http_ctx_t *ctx, const slice_t *line, const slice_t *key, const slice_t *value)
+{
+    slice_log(line);
+}
+
+static void body_cb(http_ctx_t *ctx, const slice_t *body)
+{
+    slice_log(body);
 }

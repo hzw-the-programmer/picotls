@@ -16,7 +16,9 @@ typedef struct http_ctx {
     http_parse_step_e parse_step;
     int status;
     size_t len;
-    void (*header_cb)(struct http_ctx *ctx, const slice_t *k, const slice_t *v);
+    void (*firstline_cb)(struct http_ctx *ctx, const slice_t *line, const slice_t *version, const slice_t *status, const slice_t *reason);
+    void (*header_cb)(struct http_ctx *ctx, const slice_t *line, const slice_t *key, const slice_t *value);
+    void (*body_cb)(struct http_ctx *ctx, const slice_t *s);
     void *ctx;
 } http_ctx_t;
 
