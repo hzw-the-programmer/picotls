@@ -96,6 +96,7 @@ void process(SOCKET soc) {
 		
 		while (sendbuf.off) {
 			result = send(soc, sendbuf.base, sendbuf.off, 0);
+			printf("send: want=0x%02x, got=0x%02x\n", sendbuf.off, result);
 			if (result > 0) {
 				ptls_buffer_shift(&sendbuf, result);
 			}
