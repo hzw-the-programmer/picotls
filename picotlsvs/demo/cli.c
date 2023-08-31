@@ -80,6 +80,7 @@ void process(SOCKET soc) {
 	ptls_buffer_init(&recvbuf, "", 0);
 
 	http_ctx_t http_ctx = {0};
+	int req_count = 0;
 
 	while (1) {
 		int result;
@@ -104,6 +105,7 @@ void process(SOCKET soc) {
 				if (!ptls_handshake_is_complete(tls)) {
 					result = ptls_handshake(tls, &sendbuf, buf, &left, NULL);
 					if (result == 0) {
+						printf("req_count=%d\n", req_count++);
 						ptls_send(tls, &sendbuf, REQUEST, sizeof(REQUEST) - 1);
 					}
 				}
@@ -116,9 +118,9 @@ void process(SOCKET soc) {
 							}
                             size_t consumed = recvbuf.off;
 							if (http_parse_response(&http_ctx, recvbuf.base, &consumed)) {
-                                static int count;
-
-								if (count++ < 3) {
+                                memset(&http_ctx, 0, sizeof(http_ctx));
+                                if (req_count < 3) {
+                                    printf("req_count=%d\n", req_count++);
                                     ptls_send(tls, &sendbuf, REQUEST, sizeof(REQUEST) - 1);
 								}
 							}
