@@ -1,6 +1,6 @@
 #include "http.h"
 
-void http_parse_response(http_ctx_t* ctx, const uint8_t* ptr, size_t* len)
+int http_parse_response(http_ctx_t* ctx, const uint8_t* ptr, size_t* len)
 {
     slice_t s, l, k, t;
 
@@ -14,7 +14,7 @@ void http_parse_response(http_ctx_t* ctx, const uint8_t* ptr, size_t* len)
         }
         ctx->len -= s.len;
         *len += s.len;
-        return;
+        return ctx->len == 0;
     }
 
     while (slice_read_line(&s, &l) == 0) {
@@ -45,4 +45,6 @@ void http_parse_response(http_ctx_t* ctx, const uint8_t* ptr, size_t* len)
             ctx->header_cb(ctx, &l, &t);
         }
     }
+
+    return 0;
 }

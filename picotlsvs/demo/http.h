@@ -20,6 +20,6 @@ typedef struct http_ctx {
     void *ctx;
 } http_ctx_t;
 
-void http_parse_response(http_ctx_t *ctx, const uint8_t *ptr, size_t *len);
+int http_parse_response(http_ctx_t *ctx, const uint8_t *ptr, size_t *len);
 
 #endif

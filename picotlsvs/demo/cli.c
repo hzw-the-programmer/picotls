@@ -115,7 +115,13 @@ void process(SOCKET soc) {
                                 printf("%c", recvbuf.base[i]);
 							}
                             size_t consumed = recvbuf.off;
-                            http_parse_response(&http_ctx, recvbuf.base, &consumed);
+							if (http_parse_response(&http_ctx, recvbuf.base, &consumed)) {
+                                static int count;
+
+								if (count++ < 3) {
+                                    ptls_send(tls, &sendbuf, REQUEST, sizeof(REQUEST) - 1);
+								}
+							}
                             ptls_buffer_shift(&recvbuf, consumed);
 						}
 					}
